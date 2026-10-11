@@ -1018,16 +1018,16 @@ end
 -- account is retried every pass and blocks every trio below it.
 local badTrio = {}
 
-local function doFuse()
+local function doFuse(forcedTargets)
 	if not R.Fuse then return false end   -- the savings gate sits in the loop
 	local d = data()
 	local busy = {}
-	for _, slot in pairs(d.Slots) do if slot.unitId then busy[slot.unitId] = true end end
+	for _, slot in pairs(d.Slots or {}) do if slot.unitId then busy[slot.unitId] = true end end
 	for _, id in pairs(d.TowerTeam or {}) do busy[id] = true end
-	-- Never fuse a unit that is good enough to be placed: the top (slots + 2) by
-	-- level-free income stay out of the pile. The first build fused on chance
-	-- alone and ate spares that should have been standing on the plot.
-	do
+
+	-- Manual preview fusion must use the exact IDs shown by the preview. In the
+	-- automatic path, continue protecting the top eight units by base income.
+	if not forcedTargets then
 		local ranked = {}
 		for id, u in pairs(d.Inventory) do
 			if UnitConfig.entries[u.name] then ranked[#ranked + 1] = { id = id, v = baseIncome(u) } end
@@ -1037,10 +1037,33 @@ local function doFuse()
 	end
 
 	local pile = {}
-	for id, u in pairs(d.Inventory) do
-		if not busy[id] and UnitConfig.entries[u.name] then
+	if forcedTargets then
+		if type(forcedTargets) ~= "table" or #forcedTargets ~= 3 then
+			STATE.note = "fuse: expected exactly 3 preview units"
+			return false
+		end
+		local seen = {}
+		for _, target in ipairs(forcedTargets) do
+			local id = target.id
+			local u = id and d.Inventory[id]
+			if not u or busy[id] or seen[id] or not UnitConfig.entries[u.name] then
+				STATE.note = "fuse: a preview unit is no longer eligible"
+				return false
+			end
+			seen[id] = true
 			local ch = select(2, pcall(FusingUtil.GetChance, u))
-			if type(ch) == "number" then pile[#pile + 1] = { id = id, ch = ch } end
+			if type(ch) ~= "number" then
+				STATE.note = "fuse: couldn't read preview unit chance"
+				return false
+			end
+			pile[#pile + 1] = { id = id, ch = ch }
+		end
+	else
+		for id, u in pairs(d.Inventory) do
+			if not busy[id] and UnitConfig.entries[u.name] then
+				local ch = select(2, pcall(FusingUtil.GetChance, u))
+				if type(ch) == "number" then pile[#pile + 1] = { id = id, ch = ch } end
+			end
 		end
 	end
 	table.sort(pile, function(a, b) return a.ch > b.ch end)
@@ -1384,13 +1407,12 @@ fuseCard:Button("Preview 3 weakest", function()
         return
     end
 
-    if #targets == 0 then
-        previewLabel:set("No eligible unplaced units found")
+    if #targets ~= 3 then
+        previewLabel:set("Need 3 eligible unplaced units to fuse")
         return
     end
 
-    local lines = {"3 LOWEST-VALUED ELIGIBLE UNITS:"}
-
+    local lines = {"SELECTED 3 LOWEST-VALUED UNITS:"}
     for i, u in ipairs(targets) do
         lines[#lines + 1] = string.format(
             "%d. %s | %s/s",
@@ -1400,7 +1422,17 @@ fuseCard:Button("Preview 3 weakest", function()
         )
     end
 
-    previewLabel:set(table.concat(lines, "\n"))
+    previewLabel:set(table.concat(lines, "\n") .. "\nFusing selected units...")
+    task.spawn(function()
+        local fuseOk, fused = pcall(doFuse, targets)
+        if not fuseOk then
+            previewLabel:set(table.concat(lines, "\n") .. "\nFusion error: " .. tostring(fused))
+        elseif fused then
+            previewLabel:set(table.concat(lines, "\n") .. "\nFusion successful!")
+        else
+            previewLabel:set(table.concat(lines, "\n") .. "\nFusion not completed: " .. tostring(STATE.note))
+        end
+    end)
 end)
 
 local boostCard = boostPage:Card("BOOSTS", 2)
