@@ -980,11 +980,8 @@ local function doFuse()
 			if UnitConfig.entries[u.name] then ranked[#ranked + 1] = { id = id, v = baseIncome(u) } end
 		end
 		table.sort(ranked, function(a, b) return a.v > b.v end)
-		local protectedCount = 6 + 2
-
-		for i = 1, math.min(#ranked, protectedCount) do
-    	busy[ranked[i].id] = true
-		end
+		for i = 1, math.min(#ranked, unlockedSlots() + 2) do busy[ranked[i].id] = true end
+	end
 
 	local pile = {}
 	for id, u in pairs(d.Inventory) do
