@@ -267,6 +267,59 @@ local function baseIncome(u)
 		{ mutation = a.mutation, grade = a.grade, trait = a.trait, level = 1 }))) or 0
 end
 
+
+local function previewFuseTargets()
+    local d = data()
+    local placed = {}
+
+    for _, slot in pairs(d.Slots or {}) do
+        if slot.unitId then
+            placed[slot.unitId] = true
+        end
+    end
+
+    for _, id in pairs(d.TowerTeam or {}) do
+        placed[id] = true
+    end
+
+    local all = {}
+    for id, u in pairs(d.Inventory or {}) do
+        if UnitConfig.entries[u.name] then
+            all[#all + 1] = {
+                id = id,
+                name = u.name,
+                value = baseIncome(u),
+            }
+        end
+    end
+
+    table.sort(all, function(a, b)
+        return a.value > b.value
+    end)
+
+    local protected = {}
+    for i = 1, math.min(6, #all) do
+        protected[all[i].id] = true
+    end
+
+    local candidates = {}
+    for _, u in ipairs(all) do
+        if not placed[u.id] and not protected[u.id] then
+            candidates[#candidates + 1] = u
+        end
+    end
+
+    table.sort(candidates, function(a, b)
+        return a.value < b.value
+    end)
+
+    local result = {}
+    for i = 1, math.min(3, #candidates) do
+        result[#result + 1] = candidates[i]
+    end
+
+    return result
+end
 ---------------------------------------------------------------- dice model -----
 
 -- Sorted once: name -> {luck, price}. Basic has no price (the free default).
