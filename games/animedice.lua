@@ -1374,7 +1374,34 @@ fuseCard:Slider("Fuse budget %", 5, 90, math.floor(CONFIG.fuseShare * 100),
 	function(v) CONFIG.fuseShare = v / 100 end,
 	"share of money one fusion may cost (and at most 30s of income)")
 local fuseLabel = fuseCard:Label("fused -")
-fuseCard:Button("Fuse now", function() task.spawn(doFuse) end)
+local previewLabel = fuseCard:Label("Click below to preview targets")
+
+fuseCard:Button("Preview 3 weakest", function()
+    local ok, targets = pcall(previewFuseTargets)
+
+    if not ok then
+        previewLabel:set("Preview failed: check inventory data")
+        return
+    end
+
+    if #targets == 0 then
+        previewLabel:set("No eligible unplaced units found")
+        return
+    end
+
+    local lines = {"3 LOWEST-VALUED ELIGIBLE UNITS:"}
+
+    for i, u in ipairs(targets) do
+        lines[#lines + 1] = string.format(
+            "%d. %s | %s/s",
+            i,
+            tostring(u.name),
+            fmt(u.value)
+        )
+    end
+
+    previewLabel:set(table.concat(lines, "\n"))
+end)
 
 local boostCard = boostPage:Card("BOOSTS", 2)
 toggle(boostCard, "Auto Use Boosts", "autoBoost",
