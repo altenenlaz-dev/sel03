@@ -1347,7 +1347,7 @@ local diceInfoOut = statPage:Card("DICE", 2):Readout(11)
 pcall(function() win:Home() end)
 pcall(function() win:Settings() end)
 
-win:SetMaster(CONFIG.auto, "Auto Play", "roll, collect, upgrade, rebirth")
+win:SetMaster(CONFIG.auto, "Lex Play", "roll, collect, upgrade, rebirth")
 win:OnMaster(function(on) CONFIG.auto = on end)
 win:Refresh()
 
