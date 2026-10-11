@@ -1333,11 +1333,11 @@ local rewPage = win:Page("REWARDS", UI.icon.bag)
 
 local codeCard = rewPage:Card("CODES", 1):Accent()
 toggle(codeCard, "Auto Redeem Codes", "autoCodes", "every code, once")
-codeCard:Button("Redeem all now", function() task.spawn(doCodes) end)
+codeCard:Button("Redeem now", function() task.spawn(doCodes) end)
 
 local claimCard = rewPage:Card("CLAIMS", 1)
 toggle(claimCard, "Auto Claim Rewards", "autoClaim", "offline / daily / group")
-claimCard:Button("Claim now", function() doClaims() end)
+claimCard:Button("Claim", function() doClaims() end)
 
 -- STATUS ----------------------------------------------------------------------
 local statPage = win:Page("STATUS", UI.icon.chart)
